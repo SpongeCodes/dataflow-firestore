@@ -1,0 +1,4 @@
+# IntelliJ IDEA
+.idea/**
+# no cred file
+src/main/resources/application_default_credentials.json
