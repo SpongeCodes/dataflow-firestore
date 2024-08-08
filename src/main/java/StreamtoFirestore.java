@@ -29,8 +29,12 @@ import java.util.UUID;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StreamtoFirestore {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StreamtoFirestore.class);
     public static class VehicleData {
         private String vehicle_id;
         private double latitude;
@@ -110,13 +114,22 @@ public class StreamtoFirestore {
 
         @Setup
         public void setup() {
-            firestore = FirestoreOptions.getDefaultInstance().getService();
+            try {
+                FirestoreOptions firestoreOptions = FirestoreOptions.newBuilder()
+                        .setCredentials(GoogleCredentials.getApplicationDefault())
+                        .setProjectId("clean-doodad-428805-i9")
+                        .build();
+                firestore = firestoreOptions.getService();
+                LOG.info("Firestore client initialized successfully.");
+            } catch (IOException e) {
+                LOG.error("Failed to initialize Firestore client: ", e);
+            }
         }
 
         @ProcessElement
         public void processElement(ProcessContext c) {
             String json = c.element();
-            System.out.println(json);
+            LOG.error(json);
             VehicleData data = convertToVehicleData(json);
 
             if(data!=null) {
@@ -143,7 +156,7 @@ public class StreamtoFirestore {
                     @Override
                     public void onSuccess(WriteResult result) {
                         // Optionally log success
-                        System.out.println("Successfully wrote to Firestore: " + result.getUpdateTime());
+                        LOG.info("Successfully wrote to Firestore: " + result.getUpdateTime());
                     }
                 }, MoreExecutors.directExecutor());
             }
@@ -164,7 +177,7 @@ public class StreamtoFirestore {
         options.setRegion("asia-east1");
         options.setStreaming(true);
         options.setGcpCredential(GoogleCredentials.getApplicationDefault());
-        //options.setTempLocation("gs://dataflow-upamanyu/temp/");
+        options.setTempLocation("gs://dataflow-upamanyu/temp/");
         Pipeline p = Pipeline.create(options);
         // read from pub/sub and process from dataflow and send to firestore
 
