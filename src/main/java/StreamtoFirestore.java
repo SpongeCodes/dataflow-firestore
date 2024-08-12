@@ -32,6 +32,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.cloud.firestore.FirestoreOptions;
+import com.google.firestore.v1.Document;
+import com.google.firestore.v1.Value;
+import com.google.firestore.v1.Write;
+import org.apache.beam.runners.dataflow.options.DataflowPipelineOptions;
+import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.io.gcp.firestore.FirestoreIO;
+import org.apache.beam.sdk.io.gcp.firestore.RpcQosOptions;
+import org.apache.beam.sdk.options.PipelineOptions;
+import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.transforms.Create;
+
 public class StreamtoFirestore {
 
     private static final Logger LOG = LoggerFactory.getLogger(StreamtoFirestore.class);
@@ -120,6 +132,7 @@ public class StreamtoFirestore {
                         .setProjectId("clean-doodad-428805-i9")
                         .build();
                 firestore = firestoreOptions.getService();
+                LOG.info("Firestore PROJECT: "+firestoreOptions.getProjectId());
                 LOG.info("Firestore client initialized successfully.");
             } catch (IOException e) {
                 LOG.error("Failed to initialize Firestore client: ", e);
@@ -129,9 +142,9 @@ public class StreamtoFirestore {
         @ProcessElement
         public void processElement(ProcessContext c) {
             String json = c.element();
-            LOG.error(json);
+            LOG.info("String received");
+            LOG.info(json);
             VehicleData data = convertToVehicleData(json);
-
             if(data!=null) {
 
                 // Populate the Firestore map with the data
@@ -141,7 +154,7 @@ public class StreamtoFirestore {
                 String uniqueDocumentId = UUID.randomUUID().toString();
 
                 // Define Firestore document path with unique ID
-                String documentPath = "vehicle-tracking/" + uniqueDocumentId;
+                String documentPath = "vehicle_tracking/" + uniqueDocumentId;
                 // Firestore write operation
                 ApiFuture<WriteResult> future = firestore.document(documentPath).set(firestoreData);
 
@@ -161,6 +174,7 @@ public class StreamtoFirestore {
                 }, MoreExecutors.directExecutor());
             }
         }
+
     }
 
     public static void main(String[] args) throws IOException {
